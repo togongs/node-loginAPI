@@ -1,7 +1,8 @@
-const { User } = require("../models");
+const { User, sequelize } = require("../models");
 const bcrypt = require("bcrypt");
 const saltRound = 10;
 const jwt = require("jsonwebtoken");
+const { QueryTypes } = require("sequelize");
 const { signUpSchema, signInSchema, duplicatedEmailSchema } = require("./joi");
 
 module.exports = {
@@ -13,6 +14,14 @@ module.exports = {
       const exEmail = await User.findOne({ where: { email } });
       if (!exEmail) {
         await User.create({ email, password: hashedPassword });
+        // 시퀄라이즈 raw query
+        // const User = await sequelize.query(
+        //   "insert into User (email, password) values (:email, :password)",
+        //   {
+        //     replacements: { email: email, password: hashedPassword },
+        //     type: QueryTypes.INSERT,
+        //   }
+        // );
         return res
           .status(200)
           .send({ result: "success", msg: "회원가입 완료" });
@@ -30,6 +39,14 @@ module.exports = {
     try {
       const { email, password } = await signInSchema.validateAsync(req.body);
       const exUser = await User.findOne({ where: { email } });
+      // 시퀄라이즈 raw query
+      // const exUser = await sequelize.query(
+      //   "select * from User where email = :email",
+      //   {
+      //     replacements: { email: email,},
+      //     type: QueryTypes.INSERT,
+      //   }
+      // );
       console.log(exUser);
       // 이메일이 없는 경우
       if (!exUser) {
@@ -55,6 +72,13 @@ module.exports = {
     const user = res.locals.user;
     try {
       const exUser = await User.findOne({ where: { email: user.email } });
+      // const exUser = await sequelize.query(
+      //   "select * from User where email = :email",
+      //   {
+      //     replacements: { email: email,},
+      //     type: QueryTypes.INSERT,
+      //   }
+      // );
       if (exUser) {
         res.status(200).send({ result: "success", msg: "로그인 중" });
       } else {
@@ -69,6 +93,13 @@ module.exports = {
     try {
       const { email } = await duplicatedEmailSchema.validateAsync(req.body);
       const user = await User.findOne({ where: { email } });
+      // const user = await sequelize.query(
+      //   "select * from User where email = :email",
+      //   {
+      //     replacements: { email: email,},
+      //     type: QueryTypes.INSERT,
+      //   }
+      // );
       if (!user) {
         res.status(400).send({ result: "fail", msg: "이메일 중복" });
       } else {
